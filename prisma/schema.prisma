@@ -1,0 +1,305 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+enum BrandSegment {
+  LUXURY
+  PREMIUM
+  MASS_MARKET
+  STREETWEAR
+  SPORT
+}
+
+enum Condition {
+  NEW_WITH_TAGS
+  NEW_WITHOUT_TAGS
+  USED_EXCELLENT
+  USED_GOOD
+  USED_FAIR
+}
+
+enum Gender {
+  MEN
+  WOMEN
+  UNISEX
+  KIDS
+}
+
+enum Currency {
+  BYN
+  USD
+  EUR
+  RUB
+}
+
+enum ListingStatus {
+  DRAFT
+  MODERATION
+  ACTIVE
+  REJECTED
+  SOLD
+  ARCHIVED
+}
+
+enum ReviewStatus {
+  MODERATION
+  APPROVED
+  REJECTED
+}
+
+enum ReportTargetType {
+  LISTING
+  USER
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+  DISMISSED
+}
+
+// ─── Users ───────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  telegramId String?  @unique
+  name       String
+  email      String?
+  avatar     String?
+  banner     String?
+  bio        String?
+  city       String?
+  role       Role     @default(USER)
+  banned     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  listings        Listing[]
+  favorites       Favorite[]
+  sentMessages    Message[]      @relation("SentMessages")
+  conversations1  Conversation[] @relation("User1")
+  conversations2  Conversation[] @relation("User2")
+  reviewsWritten  Review[]       @relation("ReviewAuthor")
+  reviewsReceived Review[]       @relation("ReviewSeller")
+  reportsFiled    Report[]       @relation("ReportReporter")
+  reportsReceived Report[]       @relation("ReportTargetUser")
+}
+
+// ─── Brands ──────────────────────────────────────────────
+
+model Brand {
+  id       String       @id @default(cuid())
+  name     String       @unique
+  slug     String       @unique
+  segment  BrandSegment @default(MASS_MARKET)
+  logo     String?
+  listings Listing[]
+}
+
+// ─── Categories ──────────────────────────────────────────
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String
+  slug     String     @unique
+  icon     String?
+  order    Int        @default(0)
+  parentId String?
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  listings Listing[]
+
+  @@index([parentId])
+}
+
+// ─── Listings ────────────────────────────────────────────
+
+model Listing {
+  id            String        @id @default(cuid())
+  title         String
+  description   String
+  price         Float
+  originalPrice Float?
+  currency      Currency      @default(BYN)
+  condition     Condition     @default(USED_EXCELLENT)
+  gender        Gender        @default(UNISEX)
+  size          String?
+  color         String?
+  city          String
+  delivery      String        @default("[]")
+  status        ListingStatus @default(MODERATION)
+  rejectionReason String?
+  quantity      Int           @default(1)
+  views         Int           @default(0)
+  promotedUntil DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  brandId    String
+  brand      Brand    @relation(fields: [brandId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  images        ListingImage[]
+  favorites     Favorite[]
+  conversations Conversation[]
+  reports       Report[]
+  listingViews  ListingView[]
+  reviews       Review[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([userId, status])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([city])
+  @@index([price])
+}
+
+model ListingImage {
+  id        String  @id @default(cuid())
+  url       String
+  order     Int     @default(0)
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+// ─── Favorites ───────────────────────────────────────────
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  listingId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+// ─── Views ───────────────────────────────────────────────
+
+model ListingView {
+  id        String   @id @default(cuid())
+  userId    String?
+  ip        String?
+  listingId String
+  viewedAt  DateTime @default(now())
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@index([listingId])
+}
+
+// ─── Login sessions (used by the standalone Android app) ──
+
+model LoginSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+// ─── Messages ────────────────────────────────────────────
+
+model Conversation {
+  id        String   @id @default(cuid())
+  user1Id   String
+  user2Id   String
+  listingId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user1    User      @relation("User1", fields: [user1Id], references: [id], onDelete: Cascade)
+  user2    User      @relation("User2", fields: [user2Id], references: [id], onDelete: Cascade)
+  listing  Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@unique([user1Id, user2Id, listingId])
+  @@index([user1Id])
+  @@index([user2Id])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  text           String
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  notifyChatId    String?
+  notifyMessageId Int?
+
+  senderId       String
+  sender         User         @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+}
+
+// ─── Reviews ─────────────────────────────────────────────
+
+model Review {
+  id              String       @id @default(cuid())
+  rating          Int
+  text            String
+  status          ReviewStatus @default(MODERATION)
+  rejectionReason String?
+  createdAt       DateTime     @default(now())
+
+  authorId String
+  author   User   @relation("ReviewAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  sellerId String
+  seller   User   @relation("ReviewSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+
+  @@unique([authorId, sellerId])
+  @@index([sellerId, status])
+}
+
+// ─── Reports ─────────────────────────────────────────────
+
+model Report {
+  id         String           @id @default(cuid())
+  targetType ReportTargetType
+  reason     String
+  comment    String?
+  status     ReportStatus     @default(PENDING)
+  createdAt  DateTime         @default(now())
+
+  reporterId String
+  reporter   User   @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  targetUserId String?
+  targetUser   User?   @relation("ReportTargetUser", fields: [targetUserId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([listingId])
+  @@index([targetUserId])
+}

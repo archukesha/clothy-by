@@ -1,0 +1,49 @@
+@import "tailwindcss";
+@plugin "tailwindcss-animate";
+
+@theme inline {
+  --font-sans: var(--font-inter);
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+  touch-action: manipulation;
+}
+
+:root {
+  --app-bg: #ffffff;
+  --app-surface: #ffffff;
+  --app-text: #111111;
+  --app-muted: #737373;
+  --app-border: #e5e5e5;
+  --app-accent: #111111;
+}
+
+body {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+  background: var(--app-bg);
+  color: var(--app-text);
+}
+
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d4d4d4;
+  border-radius: 2px;
+}

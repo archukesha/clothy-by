@@ -1,0 +1,6 @@
+[Unit]
+Description=Clothy DB backup sent to Telegram
+
+[Service]
+Type=oneshot
+ExecStart=/opt/clothy/scripts/backup-db.sh

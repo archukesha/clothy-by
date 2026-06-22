@@ -1,0 +1,8 @@
+{
+  "message": {
+    "message_id": 1,
+    "text": "/start login_cmqpr44uu0000xuu7hb0ksmei",
+    "from": {"id": 999999999999, "first_name": "Test", "last_name": "Android"},
+    "chat": {"id": 999999999999}
+  }
+}

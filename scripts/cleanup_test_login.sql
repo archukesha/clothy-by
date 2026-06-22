@@ -1,0 +1,1 @@
+DELETE FROM "User" WHERE "telegramId" = '999999999999';
