@@ -21,6 +21,7 @@ interface TelegramContextType {
   loginStatus: LoginStatus;
   startTelegramLogin: () => Promise<void>;
   setUser: (user: TwaUser | null) => void;
+  debugInfo: string;
 }
 
 const TelegramContext = createContext<TelegramContextType>({
@@ -31,6 +32,7 @@ const TelegramContext = createContext<TelegramContextType>({
   loginStatus: "idle",
   startTelegramLogin: async () => {},
   setUser: () => {},
+  debugInfo: "",
 });
 
 export function TelegramProvider({ children }: { children: React.ReactNode }) {
@@ -39,6 +41,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [needsTelegramLogin, setNeedsTelegramLogin] = useState(false);
   const [loginStatus, setLoginStatus] = useState<LoginStatus>("idle");
+  const [debugInfo, setDebugInfo] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
 
@@ -74,7 +77,15 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tg = (window as any).Telegram?.WebApp;
-        if (!tg) {
+
+        setDebugInfo(
+          `platform=${Capacitor.getPlatform()} isNative=${isNativeApp} hasWindowCapacitor=${!!(window as any).Capacitor} hasTg=${!!tg} hasInitData=${!!tg?.initData} hadStoredToken=${!!storedToken}`
+        );
+
+        // The Telegram Web App SDK script defines window.Telegram.WebApp as a
+        // stub even outside the real Telegram client, so its mere presence
+        // isn't a reliable signal — only tg.initData proves a real Mini App session.
+        if (isNativeApp || !tg?.initData) {
           if (isNativeApp) setNeedsTelegramLogin(true);
           setIsLoading(false);
           return;
@@ -134,26 +145,38 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
       window.open(deepLink, "_blank");
 
-      pollRef.current = setInterval(async () => {
+      const pollOnce = async () => {
         try {
           const pollRes = await fetch(`/api/auth/login-session/${sessionId}`);
           const data = await pollRes.json();
 
           if (data.status === "confirmed") {
-            clearInterval(pollRef.current!);
+            if (pollRef.current) clearInterval(pollRef.current);
+            document.removeEventListener("visibilitychange", onVisible);
             localStorage.setItem("twa_token", data.token);
             setUser(data.user);
             setToken(data.token);
             setNeedsTelegramLogin(false);
             setLoginStatus("idle");
           } else if (data.status === "expired" || data.status === "not_found") {
-            clearInterval(pollRef.current!);
+            if (pollRef.current) clearInterval(pollRef.current);
+            document.removeEventListener("visibilitychange", onVisible);
             setLoginStatus("expired");
           }
         } catch {
           // keep polling, transient network errors are fine
         }
-      }, 2000);
+      };
+
+      // Android aggressively suspends setInterval while the app is in the
+      // background (e.g. while the user is in the Telegram app confirming),
+      // so re-poll immediately as soon as the app regains focus.
+      const onVisible = () => {
+        if (document.visibilityState === "visible") pollOnce();
+      };
+      document.addEventListener("visibilitychange", onVisible);
+
+      pollRef.current = setInterval(pollOnce, 2000);
     } catch (err) {
       console.error("Telegram login session error:", err);
       setLoginStatus("error");
@@ -168,7 +191,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TelegramContext.Provider
-      value={{ user, token, isLoading, needsTelegramLogin, loginStatus, startTelegramLogin, setUser }}
+      value={{ user, token, isLoading, needsTelegramLogin, loginStatus, startTelegramLogin, setUser, debugInfo }}
     >
       {children}
     </TelegramContext.Provider>

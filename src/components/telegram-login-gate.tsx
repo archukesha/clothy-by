@@ -4,19 +4,34 @@ import { useTelegram } from "@/context/telegram";
 import { Button } from "@/components/ui/button";
 import { Send, Loader2 } from "lucide-react";
 
+function DebugBar({ text }: { text: string }) {
+  if (!text) return null;
+  return (
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] break-all bg-black/90 p-2 text-[10px] text-lime-400">
+      {text}
+    </div>
+  );
+}
+
 export function TelegramLoginGate({ children }: { children: React.ReactNode }) {
-  const { isLoading, needsTelegramLogin, loginStatus, startTelegramLogin } = useTelegram();
+  const { isLoading, needsTelegramLogin, loginStatus, startTelegramLogin, debugInfo } = useTelegram();
 
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+        <DebugBar text={debugInfo} />
       </div>
     );
   }
 
   if (!needsTelegramLogin) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <DebugBar text={debugInfo} />
+      </>
+    );
   }
 
   return (
