@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Capacitor } from "@capacitor/core";
 
 export interface TwaUser {
   id: string;
@@ -69,8 +70,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
           localStorage.removeItem("twa_token");
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const isNativeApp = !!(window as any).Capacitor?.isNativePlatform?.();
+        const isNativeApp = Capacitor.isNativePlatform();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tg = (window as any).Telegram?.WebApp;

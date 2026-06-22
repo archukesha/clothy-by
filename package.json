@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor/core": "^8.4.1",
     "@hookform/resolvers": "^5.4.0",
     "@prisma/client": "^6.19.3",
     "@twa-dev/sdk": "^8.0.2",
@@ -30,7 +31,6 @@
   "devDependencies": {
     "@capacitor/android": "^8.4.1",
     "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
