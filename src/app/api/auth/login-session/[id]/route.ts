@@ -34,9 +34,19 @@ export async function GET(
 
   await prisma.loginSession.delete({ where: { id } }).catch(() => {});
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     status: "confirmed",
     token,
     user: { id: user.id, name: user.name, avatar: user.avatar, telegramId: user.telegramId },
   });
+
+  response.cookies.set("twa_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 30,
+    path: "/",
+  });
+
+  return response;
 }
