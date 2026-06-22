@@ -21,7 +21,6 @@ interface TelegramContextType {
   loginStatus: LoginStatus;
   startTelegramLogin: () => Promise<void>;
   setUser: (user: TwaUser | null) => void;
-  debugInfo: string;
 }
 
 const TelegramContext = createContext<TelegramContextType>({
@@ -32,7 +31,6 @@ const TelegramContext = createContext<TelegramContextType>({
   loginStatus: "idle",
   startTelegramLogin: async () => {},
   setUser: () => {},
-  debugInfo: "",
 });
 
 export function TelegramProvider({ children }: { children: React.ReactNode }) {
@@ -41,7 +39,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [needsTelegramLogin, setNeedsTelegramLogin] = useState(false);
   const [loginStatus, setLoginStatus] = useState<LoginStatus>("idle");
-  const [debugInfo, setDebugInfo] = useState("");
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const router = useRouter();
 
@@ -77,10 +74,6 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const tg = (window as any).Telegram?.WebApp;
-
-        setDebugInfo(
-          `platform=${Capacitor.getPlatform()} isNative=${isNativeApp} hasWindowCapacitor=${!!(window as any).Capacitor} hasTg=${!!tg} hasInitData=${!!tg?.initData} hadStoredToken=${!!storedToken}`
-        );
 
         // The Telegram Web App SDK script defines window.Telegram.WebApp as a
         // stub even outside the real Telegram client, so its mere presence
@@ -191,7 +184,7 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <TelegramContext.Provider
-      value={{ user, token, isLoading, needsTelegramLogin, loginStatus, startTelegramLogin, setUser, debugInfo }}
+      value={{ user, token, isLoading, needsTelegramLogin, loginStatus, startTelegramLogin, setUser }}
     >
       {children}
     </TelegramContext.Provider>
