@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 
 export interface TwaUser {
   id: string;
@@ -136,7 +137,11 @@ export function TelegramProvider({ children }: { children: React.ReactNode }) {
       }
       const { sessionId, deepLink } = await createRes.json();
 
-      window.open(deepLink, "_blank");
+      if (Capacitor.isNativePlatform()) {
+        await Browser.open({ url: deepLink });
+      } else {
+        window.open(deepLink, "_blank");
+      }
 
       const pollOnce = async () => {
         try {
